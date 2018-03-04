@@ -97,7 +97,7 @@ class ZhihuSpider(scrapy.Spider):
 
         item = MyImageItem(
             image_urls=[img_url],
-            image_paths=["full/wangqiang.jpg"]
+            # image_paths=["full/wangqiang.jpg"]
         )
         yield item
 
