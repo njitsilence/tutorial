@@ -24,3 +24,4 @@ class MyImageItem(Item):
     image_urls =Field()
     images = Field()
     image_paths = Field()
+    image_name = Field()
