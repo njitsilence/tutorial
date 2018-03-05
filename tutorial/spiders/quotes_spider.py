@@ -7,10 +7,11 @@ from tutorial.items import PeopleItem,MyImageItem
 
 class ZhihuSpider(scrapy.Spider):
     name = "zhihu"
-    start_url = "https://www.zhihu.com/people/wang-qiang-34-34"
-    # start_url = "https://www.zhihu.com/org/teng-xun-ke-ji"
+    # start_url = "https://www.zhihu.com/people/wang-qiang-34-34"
+    start_url = "https://www.zhihu.com/people/ren-ke-xin-20"
     base_url =  "https://www.zhihu.com/"
     counter = 0
+    done = True
 
     def __init__(self):
         self.xrsf = ""
@@ -62,7 +63,8 @@ class ZhihuSpider(scrapy.Spider):
             gender = "male"
         if gender_female_icon is not None:
             gender = "female"
-
+        following_count = None
+        follower_count = None
         try:
             following_count,follower_count = selector.xpath("//div[@class='NumberBoard FollowshipCard-counts NumberBoard--divider']/a/div/strong/text()").extract()
             following_count, follower_count = int(following_count.replace(",","")),int(follower_count.replace(",",""))
@@ -70,38 +72,42 @@ class ZhihuSpider(scrapy.Spider):
             pass
 
         following_url = self.start_url + '/following'
+        followers_url = self.start_url + '/followers'
         # following_url = self.start_url + '/followers'
 
         # response_for_following = Request(following_url,
         #                     meta={"cookiejar": response.meta["cookiejar"]},
         # )
+        if self.done:
+            yield Request(followers_url,
+                          meta={"cookiejar":response.meta["cookiejar"]},
+                          callback=self.parse_following,
+                          errback=self.parse_err,
+                        dont_filter=True,
+            )
 
-        # yield Request(following_url,
-        #               meta={"cookiejar":response.meta["cookiejar"]},
-        #               callback=self.parse_following,
-        #               errback=self.parse_err,
-        #               dont_filter=True,
-        # )
-
-        # item = PeopleItem(
-        #     nickname = nickname,
-        #     zhihuid = zhihuid,
-        #     busniess = busniess,
-        #     img_url = img_url,
-        #     gender = gender,
-        #     following_count = following_count,
-        #     follower_count = follower_count,
-        #     # following_url =  following_url,
-        # )
-        # yield item
-
-        item = MyImageItem(
-            image_urls=[img_url],
-            # image_paths=["full/wangqiang.jpg"]
+        item_people = PeopleItem(
+            nickname = nickname,
+            zhihuid = zhihuid,
+            busniess = busniess,
+            img_url = img_url,
+            gender = gender,
+            following_count = following_count,
+            follower_count = follower_count,
+            # following_url =  following_url,
         )
-        yield item
+        yield item_people
+        # logging.info("=================================before yield item_image")
+        # item_image = MyImageItem(
+        #     image_urls=[img_url],
+        #     # image_paths=["full/wangqiang.jpg"]
+        #     image_name = nickname+"--"+zhihuid,
+        # )
+        # yield item_image
+        # logging.info("=================================after yield item_image")
 
     def parse_following(self, response):
+        self.done = False
         selector = Selector(response)
         # following_details = selector.xpath("//div[@class='ContentItem-image']/span/div/div/a/@href").extract()
         # data_state = selector.xpath("//div[@id='data']/@data-state").extract()
@@ -120,6 +126,7 @@ class ZhihuSpider(scrapy.Spider):
                           errback=self.parse_err,
                           # dont_filter=True,
                           )
+            if page == totoal_page: self.done = True
 
     def get_following_url(self,response):
         selector = Selector(response)
@@ -133,9 +140,9 @@ class ZhihuSpider(scrapy.Spider):
 
         for user_id in ids:
             if user_id:
-                following_url_home = self.base_url + "people/" + user_id
-                logging.info(following_url_home)
-                yield Request(following_url_home,
+                zhihu_url_home = self.base_url + "people/" + user_id
+                # logging.info(following_url_home)
+                yield Request(zhihu_url_home,
                               meta={"cookiejar": response.meta["cookiejar"]},
                               callback=self.parse_people,
                               # errback=self.parse_err,
