@@ -69,8 +69,9 @@ DEFAULT_REQUEST_HEADERS = {
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "tutorial.pipelines.PeoplePipeline":300,
-    "tutorial.pipelines.MyImagePipeline":300,
+    # "tutorial.pipelines.PeoplePipeline":300,
+    # "tutorial.pipelines.MyImagePipeline":300,
+    "tutorial.pipelines.MongoPipeline":300,
 }
 IMAGES_STORE = 'C:\\python_project\\img'
 
@@ -97,3 +98,5 @@ IMAGES_STORE = 'C:\\python_project\\img'
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
 
+MONGO_URI = 'mongodb://localhost:27017/'
+MONGO_DATABASE = 'zhihu_db'

@@ -9,67 +9,32 @@ import logging
 from scrapy.pipelines.images import ImagesPipeline
 from scrapy.exceptions import DropItem
 from scrapy import Request
-from tutorial.items import PeopleItem,MyImageItem
+import pymongo
+class MongoPipeline(object):
 
-class PeoplePipeline(object):
+    collection_name = 'people'
 
-    def open_spider(self,spider):
-        self.file = open("items.json","w",encoding="UTF-8")
+    def __init__(self, mongo_uri, mongo_db):
+        self.mongo_uri = mongo_uri
+        self.mongo_db = mongo_db
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        return cls(
+            mongo_uri=crawler.settings.get('MONGO_URI'),
+            mongo_db=crawler.settings.get('MONGO_DATABASE', 'items')
+        )
+
+    def open_spider(self, spider):
+        self.client = pymongo.MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+
+    def close_spider(self, spider):
+        self.client.close()
 
     def process_item(self, item, spider):
-        logging.info("===========================come to process_item")
-        logging.info(isinstance(item,PeopleItem))
-        if isinstance(item,PeopleItem):
-            line = json.dumps(dict(item),ensure_ascii=False) + "\n"
-            self.file.write(line)
+        logging.info("==================come to process_item====================")
+        if not self.db[self.collection_name].find_one({"zhihuid":item["zhihuid"]}):
+            self.db[self.collection_name].insert_one(dict(item))
         return item
-
-        # line = json.dumps(dict(item), ensure_ascii=False) + "\n"
-        # self.file.write(line)
-        # return item
-
-    def close_spider(self,spider):
-        self.file.close()
-
-class MyImagePipeline(ImagesPipeline):
-
-    def get_media_requests(self, item, info):
-        logging.info("===================come to get_media_request")
-        logging.info(isinstance(item, MyImageItem))
-        logging.info(item)
-        if isinstance(item, MyImageItem):
-
-            for image_url in item['image_urls']:
-                yield Request(image_url,meta={"item":item})
-
-        # for image_url in item['image_urls']:
-        #     yield Request(image_url, meta={"item": item})
-        # yield Request(item["image_urls"])
-
-    def item_completed(self, results, item, info):
-
-        if isinstance(item, MyImageItem):
-            image_paths = [x["path"] for ok,x in results if ok]
-            if not image_paths:
-                 raise DropItem("Item contains no images")
-            item["image_paths"] = image_paths
-
-            return item
-
-        # image_paths = [x["path"] for ok, x in results if ok]
-        # if not image_paths:
-        #     raise DropItem("Item contains no images")
-        # item["image_paths"] = image_paths
-        #
-        # return item
-
-    def file_path(self, request, response=None, info=None):
-        # logging.info("=========file_path===================")
-        # logging.info(request)
-        # logging.info(response)
-        # logging.info(info)
-        # logging.info(request.meta)
-        # logging.info(request.meta["item"])
-
-        return 'full/%s.jpg' % request.meta["item"]["image_name"]
 
